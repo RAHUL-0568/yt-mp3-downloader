@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube to MP3 Downloader</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 YouTube to MP3 Downloader</h1>
+        <p>Paste the YouTube link below and get your MP3 instantly.</p>
+
+        <input type="text" id="url" placeholder="Enter YouTube URL">
+        <button onclick="downloadMP3()">🎶 Download MP3</button>
+
+        <p id="status"></p>
+        <p class="warning">⚠️ Please ensure the video is public and available for download.</p>
+    </div>
+
+    <!-- Footer placed at the very bottom -->
+    <footer class="footer">Made with <span class="heart">❤️</span> by Rahul</footer>
+
+    <script>
+        function downloadMP3() {
+            let url = document.getElementById("url").value;
+            if (!url) {
+                alert("Please enter a YouTube URL!");
+                return;
+            }
+
+            document.getElementById("status").innerHTML = "⏳ Downloading... Please wait.";
+
+            fetch(`/download?url=${encodeURIComponent(url)}`)
+                .then(response => {
+                    if (!response.ok) throw new Error("Download failed");
+                    return response.blob();
+                })
+                .then(blob => {
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute("download", "audio.mp3"); // Auto filename handled by server
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    document.getElementById("status").innerHTML = "✅ Download started!";
+                })
+                .catch(() => document.getElementById("status").innerText = "❌ Download failed!");
+        }
+    </script>
+</body>
+</html>

@@ -5,66 +5,50 @@ const path = require("path");
 const fs = require("fs");
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
+// Detect OS and set yt-dlp path accordingly
+const ytdlpPath = process.platform === "win32" ? path.join(__dirname, "yt-dlp.exe") : path.join(__dirname, "yt-dlp");
+
+console.log("✅ Using yt-dlp path:", ytdlpPath);
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-// Download and send the file with the correct title
 app.get("/download", (req, res) => {
     const videoUrl = req.query.url;
+    if (!videoUrl) return res.status(400).json({ error: "No URL provided" });
 
-    if (!videoUrl) {
-        return res.status(400).json({ error: "No URL provided" });
-    }
-
-    // Get the video title first
-    exec(`yt-dlp --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout, titleStderr) => {
+    // Get video title
+    exec(`"${ytdlpPath}" --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout) => {
         if (titleError) {
-            console.error("Error getting title:", titleStderr);
+            console.error("❌ Error getting title:", titleError);
             return res.status(500).json({ error: "Failed to retrieve video title." });
         }
 
-        // Sanitize filename (remove invalid characters)
-        let videoTitle = titleStdout.trim().replace(/[<>:"/\\|?*]+/g, "").replace(/\s+/g, "_");
-        if (!videoTitle) videoTitle = "Downloaded_Audio"; // Fallback title
-
-        // Define output file path
+        let videoTitle = titleStdout.trim().replace(/[<>:"/\\|?*]+/g, "").replace(/\s+/g, "_") || "Downloaded_Audio";
         const outputFilePath = path.join(__dirname, `${videoTitle}.mp3`);
 
-        // yt-dlp command to download with the correct filename
-        exec(`yt-dlp -f bestaudio --extract-audio --audio-format mp3 --output "${videoTitle}.%(ext)s" "${videoUrl}"`, (error, stdout, stderr) => {
+        // Download audio
+        exec(`"${ytdlpPath}" -f bestaudio --extract-audio --audio-format mp3 --output "${videoTitle}.mp3" "${videoUrl}"`, (error) => {
             if (error) {
-                console.error("Download error:", stderr);
-                return res.status(500).json({ error: "Download failed. Check the URL or try again later." });
+                console.error("❌ Download error:", error);
+                return res.status(500).json({ error: "Download failed." });
             }
 
-            // Wait for file creation
-            const downloadedFilePath = path.join(__dirname, `${videoTitle}.mp3`);
-            if (!fs.existsSync(downloadedFilePath)) {
-                return res.status(500).json({ error: "Could not find the downloaded file." });
-            }
+            if (!fs.existsSync(outputFilePath)) return res.status(500).json({ error: "File not found." });
 
-            // Set proper headers to force correct file name
             res.setHeader("Content-Disposition", `attachment; filename="${videoTitle}.mp3"`);
             res.setHeader("Content-Type", "audio/mpeg");
 
-            // Stream the file to the browser
-            const fileStream = fs.createReadStream(downloadedFilePath);
+            const fileStream = fs.createReadStream(outputFilePath);
             fileStream.pipe(res);
 
-            // Delete the file after sending
-            fileStream.on("end", () => {
-                fs.unlinkSync(downloadedFilePath);
-            });
+            fileStream.on("end", () => fs.unlinkSync(outputFilePath));
         });
     });
 });
 
-// Serve frontend
 app.use(express.static("public"));
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log(`✅ Server running at http://localhost:${PORT}`));

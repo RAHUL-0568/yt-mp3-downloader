@@ -1,4 +1,4 @@
-echo "# 🎵 YouTube to MP3 Downloader
+🎵 YouTube to MP3 Downloader
 
 A simple and fast YouTube to MP3 downloader built with **Node.js**, **Express.js**, and **yt-dlp**.
 

@@ -7,8 +7,8 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Detect OS and set yt-dlp path accordingly
-const ytdlpPath = process.platform === "win32" ? path.join(__dirname, "yt-dlp.exe") : path.join(__dirname, "yt-dlp");
+// Use Render-compatible yt-dlp path
+const ytdlpPath = process.platform === "win32" ? path.join(__dirname, "yt-dlp.exe") : "/usr/local/bin/yt-dlp";
 
 console.log("✅ Using yt-dlp path:", ytdlpPath);
 
@@ -19,7 +19,6 @@ app.get("/download", (req, res) => {
     const videoUrl = req.query.url;
     if (!videoUrl) return res.status(400).json({ error: "No URL provided" });
 
-    // Get video title
     exec(`"${ytdlpPath}" --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout) => {
         if (titleError) {
             console.error("❌ Error getting title:", titleError);
@@ -29,7 +28,6 @@ app.get("/download", (req, res) => {
         let videoTitle = titleStdout.trim().replace(/[<>:"/\\|?*]+/g, "").replace(/\s+/g, "_") || "Downloaded_Audio";
         const outputFilePath = path.join(__dirname, `${videoTitle}.mp3`);
 
-        // Download audio
         exec(`"${ytdlpPath}" -f bestaudio --extract-audio --audio-format mp3 --output "${videoTitle}.mp3" "${videoUrl}"`, (error) => {
             if (error) {
                 console.error("❌ Download error:", error);

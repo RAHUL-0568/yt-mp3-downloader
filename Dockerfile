@@ -1,21 +1,22 @@
-# Use a lightweight official Node.js image
-FROM node:18-bullseye
-
-# Install yt-dlp
-RUN apt-get update && apt-get install -y yt-dlp
+# Use a lightweight Node.js image
+FROM node:20
 
 # Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json first (for caching)
+# Copy package.json and install dependencies
 COPY package.json package-lock.json ./
 RUN npm install
 
-# Copy the rest of the project
+# Download yt-dlp and give it execute permissions
+RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
+    chmod a+rx /usr/local/bin/yt-dlp
+
+# Copy the rest of the application
 COPY . .
 
-# Expose the port (Render will use this)
+# Expose the port
 EXPOSE 3000
 
-# Start the application
-CMD ["node", "index.js"]
+# Start the server
+CMD ["node", "server.js"]

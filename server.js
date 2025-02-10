@@ -18,6 +18,12 @@ console.log("✅ Using yt-dlp path:", ytdlpPath);
 const downloadsDir = path.join(__dirname, "downloads");
 if (!fs.existsSync(downloadsDir)) fs.mkdirSync(downloadsDir);
 
+// Path to cookies.txt for authentication
+const cookiePath = path.join(__dirname, "cookies.txt");
+if (!fs.existsSync(cookiePath)) {
+    console.warn("⚠️ Warning: cookies.txt file not found! Authentication may fail.");
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -32,10 +38,10 @@ app.get("/download", (req, res) => {
     }
 
     // Get video title
-    exec(`"${ytdlpPath}" --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout) => {
+    exec(`"${ytdlpPath}" --cookies "${cookiePath}" --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout) => {
         if (titleError) {
             console.error("❌ Error getting title:", titleError);
-            return res.status(500).json({ error: "Failed to retrieve video title." });
+            return res.status(500).json({ error: "Failed to retrieve video title. You may need to update cookies.txt." });
         }
 
         let videoTitle = titleStdout.trim().replace(/[<>:"/\\|?*]+/g, "").replace(/\s+/g, "_") || "Downloaded_Audio";
@@ -44,10 +50,10 @@ app.get("/download", (req, res) => {
         console.log(`🔹 Downloading: ${videoTitle}.mp3`);
 
         // Download audio
-        exec(`"${ytdlpPath}" -f bestaudio --extract-audio --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`, (error) => {
+        exec(`"${ytdlpPath}" --cookies "${cookiePath}" -f bestaudio --extract-audio --audio-format mp3 --output "${outputFilePath}" "${videoUrl}"`, (error) => {
             if (error) {
                 console.error("❌ Download error:", error);
-                return res.status(500).json({ error: "Download failed." });
+                return res.status(500).json({ error: "Download failed. Check if your cookies.txt is valid." });
             }
 
             if (!fs.existsSync(outputFilePath)) {

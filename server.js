@@ -40,7 +40,8 @@ app.get("/download", (req, res) => {
     // Get video title
     exec(`"${ytdlpPath}" --cookies "${cookiePath}" --print "%(title)s" "${videoUrl}"`, (titleError, titleStdout) => {
         if (titleError) {
-            console.error("❌ Error getting title:", titleError);
+            console.error("❌ Error getting title:", titleError.message, "\nFull Error:", titleError);
+
             return res.status(500).json({ error: "Failed to retrieve video title. You may need to update cookies.txt." });
         }
 
